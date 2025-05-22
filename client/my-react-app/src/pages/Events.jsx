@@ -18,6 +18,8 @@ import {
 } from "../components/ui/select";
 import { Progress } from "../components/ui/progress";
 import { createClient } from "@supabase/supabase-js";
+import { Input } from "../components/ui/input";
+import { CreateEventDialog } from "../components/CreateEventDialog";
 
 const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
@@ -33,9 +35,12 @@ export default function Events() {
     capacity: "all",
     category: "all",
   });
+  const [searchQuery, setSearchQuery] = useState("");
+  const [user, setUser] = useState(null);
 
   useEffect(() => {
     fetchEvents();
+    fetchUser();
   }, [filters, page]);
 
   const fetchEvents = async () => {
@@ -71,15 +76,34 @@ export default function Events() {
     setHasMore(data.length === 10);
   };
 
+  const fetchUser = async () => {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (user) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("is_organizer")
+        .eq("id", user.id)
+        .single();
+      setUser({ ...user, ...profile });
+    }
+  };
+
   const handleFilterChange = (key, value) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
     setPage(1);
   };
 
+  const filteredEvents = events.filter((event) =>
+    event.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   return (
     <div className="space-y-8">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">Events</h1>
+        {user?.is_organizer && <CreateEventDialog />}
         <div className="flex gap-4">
           <Select
             value={filters.status}
@@ -124,8 +148,18 @@ export default function Events() {
         </div>
       </div>
 
+      <div className="flex items-center space-x-4">
+        <Input
+          type="search"
+          placeholder="Search events..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="max-w-sm"
+        />
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {events.map((event) => (
+        {filteredEvents.map((event) => (
           <Card key={event.id}>
             <CardHeader>
               <CardTitle>{event.name}</CardTitle>
