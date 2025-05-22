@@ -1,27 +1,27 @@
-import { useEffect, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { createClient } from "@supabase/supabase-js";
+import { format } from "date-fns";
+import { motion } from "framer-motion";
+import { Button } from "../components/ui/button";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "../components/ui/card";
-import { Button } from "../components/ui/button";
 import { Progress } from "../components/ui/progress";
+import { Skeleton } from "../components/ui/skeleton";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "../components/ui/dialog";
-import { Input } from "../components/ui/input";
-import { Textarea } from "../components/ui/textarea";
-import { createClient } from "@supabase/supabase-js";
-import { Heart } from "lucide-react";
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "../components/ui/tooltip";
+import { RegistrationModal } from "../components/RegistrationModal";
+import { CommentForm } from "../components/CommentForm";
+import { CommentList } from "../components/CommentList";
+import { FavoriteButton } from "../components/FavoriteButton";
 
 const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
@@ -30,192 +30,148 @@ const supabase = createClient(
 
 export default function EventDetails() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [event, setEvent] = useState(null);
-  const [comments, setComments] = useState([]);
-  const [newComment, setNewComment] = useState("");
-  const [isFavorite, setIsFavorite] = useState(false);
-  const [isRegistering, setIsRegistering] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isRegistrationModalOpen, setIsRegistrationModalOpen] = useState(false);
+  const [registrationCount, setRegistrationCount] = useState(0);
 
   useEffect(() => {
-    fetchEventDetails();
-    fetchComments();
-    checkFavoriteStatus();
+    fetchEvent();
+    fetchRegistrationCount();
   }, [id]);
 
-  const fetchEventDetails = async () => {
-    const { data, error } = await supabase
-      .from("events")
-      .select("*")
-      .eq("id", id)
-      .single();
+  const fetchEvent = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("events")
+        .select("*")
+        .eq("id", id)
+        .single();
 
-    if (error) {
-      console.error("Error fetching event details:", error);
-      return;
+      if (error) throw error;
+      setEvent(data);
+    } catch (error) {
+      console.error("Error fetching event:", error);
+      navigate("/events");
+    } finally {
+      setIsLoading(false);
     }
-
-    setEvent(data);
   };
 
-  const fetchComments = async () => {
-    const { data, error } = await supabase
-      .from("event_comments")
-      .select("*")
-      .eq("event_id", id)
-      .order("created_at", { ascending: false });
+  const fetchRegistrationCount = async () => {
+    try {
+      const { count, error } = await supabase
+        .from("event_registrations")
+        .select("*", { count: "exact", head: true })
+        .eq("event_id", id);
 
-    if (error) {
-      console.error("Error fetching comments:", error);
-      return;
+      if (error) throw error;
+      setRegistrationCount(count || 0);
+    } catch (error) {
+      console.error("Error fetching registration count:", error);
     }
-
-    setComments(data);
   };
 
-  const checkFavoriteStatus = async () => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) return;
+  const isEventFull = event && registrationCount >= event.capacity;
+  const isEventPast = event && new Date(event.date) < new Date();
 
-    const { data, error } = await supabase
-      .from("favorites")
-      .select("*")
-      .eq("event_id", id)
-      .eq("user_id", user.id)
-      .single();
+  if (isLoading) {
+    return (
+      <div className="space-y-8">
+        <Skeleton className="h-8 w-[300px]" />
+        <Skeleton className="h-[200px] w-full" />
+        <div className="space-y-4">
+          <Skeleton className="h-4 w-[200px]" />
+          <Skeleton className="h-4 w-[150px]" />
+        </div>
+      </div>
+    );
+  }
 
-    if (error && error.code !== "PGRST116") {
-      console.error("Error checking favorite status:", error);
-      return;
-    }
-
-    setIsFavorite(!!data);
-  };
-
-  const handleCommentSubmit = async () => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) return;
-
-    const { error } = await supabase.from("event_comments").insert([
-      {
-        event_id: id,
-        user_id: user.id,
-        content: newComment,
-      },
-    ]);
-
-    if (error) {
-      console.error("Error submitting comment:", error);
-      return;
-    }
-
-    setNewComment("");
-    fetchComments();
-  };
-
-  const handleRegister = async () => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) return;
-
-    setIsRegistering(true);
-    const { error } = await supabase.from("registrations").insert([
-      {
-        event_id: id,
-        user_id: user.id,
-      },
-    ]);
-
-    if (error) {
-      console.error("Error registering for event:", error);
-      return;
-    }
-
-    setIsRegistering(false);
-    fetchEventDetails();
-  };
-
-  const toggleFavorite = async () => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) return;
-
-    if (isFavorite) {
-      const { error } = await supabase
-        .from("favorites")
-        .delete()
-        .eq("event_id", id)
-        .eq("user_id", user.id);
-    } else {
-      const { error } = await supabase.from("favorites").insert([
-        {
-          event_id: id,
-          user_id: user.id,
-        },
-      ]);
-    }
-
-    setIsFavorite(!isFavorite);
-  };
-
-  if (!event) return <div>Loading...</div>;
+  if (!event) {
+    return null;
+  }
 
   return (
-    <div className="space-y-8">
-      <div className="flex items-center justify-between">
-        <div className="space-y-1">
-          <h1 className="text-3xl font-bold">{event.name}</h1>
-          <p className="text-muted-foreground">{event.category}</p>
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+      className="space-y-8"
+    >
+      <div className="flex justify-between items-start">
+        <div>
+          <h1 className="text-3xl font-bold mb-2">{event.name}</h1>
+          <p className="text-n-4">
+            {format(new Date(event.date), "MMMM d, yyyy h:mm a")}
+          </p>
         </div>
-        <Button variant="ghost" size="icon" onClick={toggleFavorite}>
-          <Heart
-            className={`h-6 w-6 ${
-              isFavorite ? "fill-red-500 text-red-500" : ""
-            }`}
-          />
-        </Button>
+        <FavoriteButton eventId={event.id} />
       </div>
 
       <Card>
         <CardHeader>
           <CardTitle>Event Details</CardTitle>
-          <CardDescription>
-            {new Date(event.date).toLocaleDateString()}
-          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <h3 className="font-semibold mb-2">Description</h3>
-            <p>{event.description}</p>
+            <h3 className="font-medium mb-2">Description</h3>
+            <p className="text-n-2">{event.description}</p>
           </div>
-
           <div>
-            <h3 className="font-semibold mb-2">Capacity</h3>
-            <Progress
-              value={(event.remaining_capacity / event.total_capacity) * 100}
-            />
-            <p className="text-sm text-muted-foreground mt-1">
-              {event.remaining_capacity} spots remaining
-            </p>
+            <h3 className="font-medium mb-2">Location</h3>
+            <p className="text-n-2">{event.location}</p>
           </div>
-
           <div>
-            <h3 className="font-semibold mb-2">Location</h3>
-            <iframe
-              src={`https://www.google.com/maps/embed?pb=${event.map_embed_url}`}
-              width="100%"
-              height="300"
-              style={{ border: 0 }}
-              allowFullScreen=""
-              loading="lazy"
-              referrerPolicy="no-referrer-when-downgrade"
-            />
+            <h3 className="font-medium mb-2">Category</h3>
+            <p className="text-n-2">{event.category}</p>
           </div>
+          <div>
+            <h3 className="font-medium mb-2">Capacity</h3>
+            <div className="space-y-2">
+              <Progress
+                value={(registrationCount / event.capacity) * 100}
+                className="h-2"
+              />
+              <p className="text-sm text-n-4">
+                {registrationCount} / {event.capacity} registered
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Registration</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div>
+                  <Button
+                    onClick={() => setIsRegistrationModalOpen(true)}
+                    disabled={isEventFull || isEventPast}
+                  >
+                    {isEventFull
+                      ? "Event Full"
+                      : isEventPast
+                      ? "Event Ended"
+                      : "Register Now"}
+                  </Button>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                {isEventFull
+                  ? "This event has reached its capacity"
+                  : isEventPast
+                  ? "This event has already ended"
+                  : "Click to register for this event"}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </CardContent>
       </Card>
 
@@ -224,50 +180,17 @@ export default function EventDetails() {
           <CardTitle>Comments</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="space-y-4">
-            {comments.map((comment) => (
-              <div key={comment.id} className="border-b pb-4">
-                <p className="text-sm text-muted-foreground">
-                  {new Date(comment.created_at).toLocaleDateString()}
-                </p>
-                <p>{comment.content}</p>
-              </div>
-            ))}
-          </div>
-
-          <div className="space-y-2">
-            <Textarea
-              placeholder="Add a comment..."
-              value={newComment}
-              onChange={(e) => setNewComment(e.target.value)}
-              maxLength={280}
-            />
-            <Button onClick={handleCommentSubmit}>Post Comment</Button>
-          </div>
+          <CommentForm eventId={event.id} />
+          <CommentList eventId={event.id} />
         </CardContent>
       </Card>
 
-      <Dialog>
-        <DialogTrigger asChild>
-          <Button className="w-full">Register for Event</Button>
-        </DialogTrigger>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Register for {event.name}</DialogTitle>
-            <DialogDescription>
-              Please confirm your registration for this event.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsRegistering(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleRegister} disabled={isRegistering}>
-              {isRegistering ? "Registering..." : "Confirm Registration"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
+      <RegistrationModal
+        event={event}
+        isOpen={isRegistrationModalOpen}
+        onClose={() => setIsRegistrationModalOpen(false)}
+        onSuccess={fetchRegistrationCount}
+      />
+    </motion.div>
   );
 }
