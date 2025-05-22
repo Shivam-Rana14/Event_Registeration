@@ -1,0 +1,28 @@
+# Node.js
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Build artifacts
+dist/
+build/
+
+# Compiled files
+*.class
+*.pyc
+__pycache__/
+
+# Log files
+*.log
+
+# Editor/OS specific
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Environment variables
+.env
+
+# Temporary files
+*.tmp
