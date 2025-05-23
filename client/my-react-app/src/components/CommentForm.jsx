@@ -49,11 +49,19 @@ export function CommentForm({ eventId, onSuccess }) {
         return;
       }
 
+      console.log('Submitting comment:', {
+        eventId,
+        userId: user.id,
+        content: data.content
+      });
+      
       const { error } = await supabase.from("event_comments").insert({
         event_id: eventId,
         user_id: user.id,
         content: data.content,
       });
+      
+      console.log('Comment submission result:', error ? 'error' : 'success');
 
       if (error) throw error;
 
@@ -63,7 +71,10 @@ export function CommentForm({ eventId, onSuccess }) {
       });
 
       form.reset();
-      onSuccess?.();
+      // Trigger refresh of comments
+      if (typeof onSuccess === 'function') {
+        onSuccess();
+      }
     } catch (error) {
       toast({
         title: "Error",

@@ -249,7 +249,13 @@ export default function EventDetails() {
               <CardTitle>Comments</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <CommentForm eventId={event.id} />
+              <CommentForm eventId={event.id} onSuccess={() => {
+                // Force refresh of comment list
+                const commentList = document.querySelector('[data-testid="comment-list"]');
+                if (commentList) {
+                  commentList.dispatchEvent(new Event('refresh-comments'));
+                }
+              }} />
               <CommentList eventId={event.id} />
             </CardContent>
           </Card>
