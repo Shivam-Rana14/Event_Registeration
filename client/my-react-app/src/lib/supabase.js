@@ -5,227 +5,322 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-// Helper functions for database operations
+// Token management functions
+export const storeTokens = async (userId, session) => {
+  try {
+    const { error } = await supabase.from("auth_tokens").upsert({
+      user_id: userId,
+      access_token: session.access_token,
+      refresh_token: session.refresh_token,
+      expires_at: new Date(session.expires_at).toISOString(),
+    });
 
-// Events
-export const getEvents = async (filters = {}) => {
-  let query = supabase.from("events").select(`
-      *,
-      organizer:users(id, email),
-      registrations:registrations(count),
-      questions:event_questions(*)
-    `);
-
-  if (filters.category) {
-    query = query.eq("category", filters.category);
-  }
-
-  if (filters.upcoming) {
-    query = query.gte("date", new Date().toISOString());
-  }
-
-  if (filters.organizer_id) {
-    query = query.eq("organizer_id", filters.organizer_id);
-  }
-
-  const { data, error } = await query.order("date", { ascending: true });
-
-  if (error) throw error;
-  return data;
-};
-
-export const createEvent = async (eventData) => {
-  const { data, error } = await supabase
-    .from("events")
-    .insert([eventData])
-    .select()
-    .single();
-
-  if (error) throw error;
-  return data;
-};
-
-export const updateEvent = async (id, eventData) => {
-  const { data, error } = await supabase
-    .from("events")
-    .update(eventData)
-    .eq("id", id)
-    .select()
-    .single();
-
-  if (error) throw error;
-  return data;
-};
-
-// Registrations
-export const createRegistration = async (registrationData) => {
-  const { data, error } = await supabase
-    .from("registrations")
-    .insert([registrationData])
-    .select()
-    .single();
-
-  if (error) throw error;
-  return data;
-};
-
-export const getUserRegistrations = async (userId) => {
-  const { data, error } = await supabase
-    .from("registrations")
-    .select(
-      `
-      *,
-      event:events(*)
-    `
-    )
-    .eq("user_id", userId);
-
-  if (error) throw error;
-  return data;
-};
-
-// Favorites
-export const toggleFavorite = async (userId, eventId) => {
-  const { data: existing } = await supabase
-    .from("favorites")
-    .select()
-    .eq("user_id", userId)
-    .eq("event_id", eventId)
-    .single();
-
-  if (existing) {
-    const { error } = await supabase
-      .from("favorites")
-      .delete()
-      .eq("id", existing.id);
     if (error) throw error;
-    return null;
+  } catch (error) {
+    console.error("Error storing tokens:", error);
+    throw error;
   }
-
-  const { data, error } = await supabase
-    .from("favorites")
-    .insert([{ user_id: userId, event_id: eventId }])
-    .select()
-    .single();
-
-  if (error) throw error;
-  return data;
 };
 
-export const getUserFavorites = async (userId) => {
-  const { data, error } = await supabase
-    .from("favorites")
-    .select(
-      `
-      *,
-      event:events(*)
-    `
-    )
-    .eq("user_id", userId);
+export const getStoredTokens = async (userId) => {
+  try {
+    const { data, error } = await supabase
+      .from("auth_tokens")
+      .select("*")
+      .eq("user_id", userId)
+      .single();
 
-  if (error) throw error;
-  return data;
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error("Error getting stored tokens:", error);
+    throw error;
+  }
 };
 
-// Comments
-export const createComment = async (commentData) => {
-  const { data, error } = await supabase
-    .from("event_comments")
-    .insert([commentData])
-    .select()
-    .single();
+export const removeStoredTokens = async (userId) => {
+  try {
+    const { error } = await supabase
+      .from("auth_tokens")
+      .delete()
+      .eq("user_id", userId);
 
-  if (error) throw error;
-  return data;
+    if (error) throw error;
+  } catch (error) {
+    console.error("Error removing stored tokens:", error);
+    throw error;
+  }
 };
 
-export const getEventComments = async (eventId) => {
-  const { data, error } = await supabase
-    .from("event_comments")
-    .select(
-      `
-      *,
-      user:users(id, email)
-    `
-    )
-    .eq("event_id", eventId)
-    .order("created_at", { ascending: false });
-
-  if (error) throw error;
-  return data;
-};
-
-// Questions
-export const createEventQuestion = async (questionData) => {
-  const { data, error } = await supabase
-    .from("event_questions")
-    .insert([questionData])
-    .select()
-    .single();
-
-  if (error) throw error;
-  return data;
-};
-
-// Auth
+// Authentication functions
 export const signUp = async (email, password) => {
-  const { data: authData, error: authError } = await supabase.auth.signUp({
-    email,
-    password,
-  });
+  try {
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+    });
 
-  if (authError) throw authError;
-
-  const { error: profileError } = await supabase
-    .from("users")
-    .insert([{ id: authData.user.id, is_organizer: false }]);
-
-  if (profileError) throw profileError;
-
-  return authData;
+    if (error) throw error;
+    return { data, error: null };
+  } catch (error) {
+    console.error("Error signing up:", error);
+    return { data: null, error };
+  }
 };
 
 export const signIn = async (email, password) => {
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email,
-    password,
-  });
+  try {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
 
-  if (error) throw error;
-  return data;
+    if (error) throw error;
+    return { data, error: null };
+  } catch (error) {
+    console.error("Error signing in:", error);
+    return { data: null, error };
+  }
 };
 
 export const signInWithGoogle = async () => {
-  const { data, error } = await supabase.auth.signInWithOAuth({
-    provider: "google",
-  });
+  try {
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`,
+      },
+    });
 
-  if (error) throw error;
-  return data;
+    if (error) throw error;
+    return { data, error: null };
+  } catch (error) {
+    console.error("Error signing in with Google:", error);
+    return { data: null, error };
+  }
 };
 
 export const signOut = async () => {
-  const { error } = await supabase.auth.signOut();
-  if (error) throw error;
+  try {
+    // First, get the current user to clear their tokens
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    // Sign out from Supabase
+    const { error: signOutError } = await supabase.auth.signOut();
+    if (signOutError) throw signOutError;
+    
+    // Remove stored tokens from the database
+    if (user?.id) {
+      try {
+        await removeStoredTokens(user.id);
+      } catch (tokenError) {
+        console.error('Error removing stored tokens:', tokenError);
+        // Continue even if token removal fails
+      }
+    }
+    
+    return { error: null };
+  } catch (error) {
+    console.error("Error during sign out:", error);
+    return { 
+      error: {
+        ...error,
+        message: error.message || 'Failed to sign out. Please try again.'
+      } 
+    };
+  }
 };
 
-export const getCurrentUser = async () => {
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser();
-  if (error) throw error;
+export const getSession = async () => {
+  try {
+    const {
+      data: { session },
+      error,
+    } = await supabase.auth.getSession();
+    if (error) throw error;
+    return { session, error: null };
+  } catch (error) {
+    console.error("Error getting session:", error);
+    return { session: null, error };
+  }
+};
 
-  if (user) {
-    const { data: profile, error: profileError } = await supabase
-      .from("users")
-      .select("*")
-      .eq("id", user.id)
+export const getUser = async () => {
+  try {
+    const {
+      data: { user },
+      error,
+    } = await supabase.auth.getUser();
+    if (error) throw error;
+    return { user, error: null };
+  } catch (error) {
+    console.error("Error getting user:", error);
+    return { user: null, error };
+  }
+};
+
+export const getCurrentUser = async (maxRetries = 3) => {
+  let retryCount = 0;
+  
+  while (retryCount < maxRetries) {
+    try {
+      // First, try to get the current user
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
+      
+      if (userError) throw userError;
+      if (!user) return null;
+
+      // Get stored tokens
+      const tokens = await getStoredTokens(user.id);
+      if (!tokens) {
+        throw new Error("No stored authentication tokens found. Please sign in again.");
+      }
+
+      // Check if token is expired or about to expire soon (within 5 minutes)
+      const expiresAt = new Date(tokens.expires_at);
+      const now = new Date();
+      const fiveMinutesFromNow = new Date(now.getTime() + 5 * 60 * 1000);
+
+      if (expiresAt <= fiveMinutesFromNow) {
+        // Refresh the session if token is expired or about to expire
+        console.log('Refreshing session...');
+        const {
+          data: { session },
+          error: refreshError,
+        } = await supabase.auth.refreshSession();
+        
+        if (refreshError) throw refreshError;
+
+        // Store new tokens
+        if (session) {
+          await storeTokens(user.id, session);
+          // Update the user data after token refresh
+          const { data: { user: refreshedUser } } = await supabase.auth.getUser();
+          return await fetchUserProfile(refreshedUser);
+        }
+      }
+      
+      // If we get here, either the token is still valid or we've refreshed it
+      return await fetchUserProfile(user);
+      
+    } catch (error) {
+      console.error(`Attempt ${retryCount + 1} failed:`, error);
+      retryCount++;
+      
+      if (retryCount >= maxRetries) {
+        console.error('Max retries reached, giving up');
+        throw error;
+      }
+      
+      // Wait before retrying
+      await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
+    }
+  }
+  
+  throw new Error('Failed to get current user after multiple attempts');
+};
+
+// Helper function to fetch user profile
+const fetchUserProfile = async (user) => {
+  if (!user) return null;
+  
+  const { data: profile, error: profileError } = await supabase
+    .from("users")
+    .select("*")
+    .eq("id", user.id)
+    .single();
+
+  if (profileError) {
+    console.error('Error fetching user profile:', profileError);
+    throw new Error('Failed to load user profile');
+  }
+  
+  return { ...user, ...profile };
+};
+
+// Database helper functions
+export const getEvents = async (filters = {}) => {
+  try {
+    let query = supabase.from("events").select("*");
+
+    if (filters.category) {
+      query = query.eq("category", filters.category);
+    }
+
+    if (filters.isFeatured) {
+      query = query.eq("is_featured", true);
+    }
+
+    if (filters.organizerId) {
+      query = query.eq("organizer_id", filters.organizerId);
+    }
+
+    const { data, error } = await query;
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error("Error fetching events:", error);
+    throw error;
+  }
+};
+
+export const createEvent = async (eventData) => {
+  try {
+    const { data, error } = await supabase
+      .from("events")
+      .insert([eventData])
+      .select()
       .single();
 
-    if (profileError) throw profileError;
-    return { ...user, ...profile };
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error("Error creating event:", error);
+    throw error;
   }
+};
 
-  return null;
+export const updateEvent = async (eventId, eventData) => {
+  try {
+    const { data, error } = await supabase
+      .from("events")
+      .update(eventData)
+      .eq("id", eventId)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error("Error updating event:", error);
+    throw error;
+  }
+};
+
+export const deleteEvent = async (eventId) => {
+  try {
+    const { error } = await supabase.from("events").delete().eq("id", eventId);
+    if (error) throw error;
+  } catch (error) {
+    console.error("Error deleting event:", error);
+    throw error;
+  }
+};
+
+// Helper function to check Supabase connection
+export const checkSupabaseConnection = async () => {
+  try {
+    const { data, error } = await supabase
+      .from("users")
+      .select("count")
+      .limit(1);
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    console.error("Error checking Supabase connection:", error);
+    return false;
+  }
 };

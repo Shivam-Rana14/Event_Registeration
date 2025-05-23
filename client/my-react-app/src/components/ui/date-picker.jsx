@@ -21,13 +21,14 @@ export function DatePicker({ date, setDate }) {
           {date ? format(date, "PPP") : <span>Pick a date</span>}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-auto p-0">
+      <PopoverContent className="w-auto p-0" align="start">
         <Calendar
           mode="single"
           selected={date}
           onSelect={setDate}
           initialFocus
           disabled={(date) => date < new Date()}
+          className="rounded-md border"
         />
       </PopoverContent>
     </Popover>

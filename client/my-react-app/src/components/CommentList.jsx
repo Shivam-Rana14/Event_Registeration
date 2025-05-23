@@ -1,13 +1,8 @@
 import { useEffect, useState } from "react";
-import { createClient } from "@supabase/supabase-js";
+import { supabase } from "../lib/supabase";
 import { format } from "date-fns";
 import { Skeleton } from "./ui/skeleton";
 import { ScrollArea } from "./ui/scroll-area";
-
-const supabase = createClient(
-  import.meta.env.VITE_SUPABASE_URL,
-  import.meta.env.VITE_SUPABASE_ANON_KEY
-);
 
 export function CommentList({ eventId }) {
   const [comments, setComments] = useState([]);

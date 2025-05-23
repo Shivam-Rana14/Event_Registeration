@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { createClient } from "@supabase/supabase-js";
+import { useAuth } from "../contexts/AuthContext";
+import { supabase } from "../lib/supabase";
 import {
   Card,
   CardContent,
@@ -7,59 +8,51 @@ import {
   CardTitle,
 } from "../components/ui/card";
 import { Button } from "../components/ui/button";
+import { useNavigate } from "react-router-dom";
 
-const supabase = createClient(
-  import.meta.env.VITE_SUPABASE_URL,
-  import.meta.env.VITE_SUPABASE_ANON_KEY
-);
-
-function Profile() {
-  const [user, setUser] = useState(null);
+export default function Profile() {
+  const { user, isAuthenticated, signOut } = useAuth();
   const [registrations, setRegistrations] = useState([]);
   const [events, setEvents] = useState([]);
+  const navigate = useNavigate();
 
   useEffect(() => {
-    fetchUser();
-    fetchRegistrations();
-  }, []);
-
-  const fetchUser = async () => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (user) {
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", user.id)
-        .single();
-      setUser({ ...user, ...profile });
+    if (isAuthenticated && user) {
+      fetchRegistrations();
     }
-  };
+  }, [isAuthenticated, user]);
 
   const fetchRegistrations = async () => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (user) {
+    try {
       const { data: registrations } = await supabase
-        .from("event_registrations")
-        .select("*, events(*)")
+        .from("registrations")
+        .select(
+          `
+          *,
+          event:events(*)
+        `
+        )
         .eq("user_id", user.id);
 
       if (registrations) {
         setRegistrations(registrations);
-        setEvents(registrations.map((reg) => reg.events));
+        setEvents(registrations.map((reg) => reg.event));
       }
+    } catch (error) {
+      console.error("Error fetching registrations:", error);
     }
   };
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    window.location.href = "/";
+    try {
+      await signOut();
+      navigate("/");
+    } catch (error) {
+      console.error("Error signing out:", error);
+    }
   };
 
-  if (!user) {
+  if (!isAuthenticated || !user) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <Card className="w-full max-w-md">
@@ -67,9 +60,7 @@ function Profile() {
             <CardTitle>Please sign in to view your profile</CardTitle>
           </CardHeader>
           <CardContent>
-            <Button onClick={() => (window.location.href = "/login")}>
-              Sign In
-            </Button>
+            <Button onClick={() => navigate("/login")}>Sign In</Button>
           </CardContent>
         </Card>
       </div>
@@ -77,37 +68,34 @@ function Profile() {
   }
 
   return (
-    <div className="space-y-8">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">Profile</h1>
-        <Button variant="outline" onClick={handleSignOut}>
-          Sign Out
-        </Button>
-      </div>
-
-      <Card>
+    <div className="container mx-auto px-4 py-8">
+      <Card className="mb-8">
         <CardHeader>
-          <CardTitle>Account Information</CardTitle>
+          <CardTitle>Profile Information</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <p className="text-sm font-medium text-n-4">Email</p>
-            <p>{user.email}</p>
-          </div>
-          <div>
-            <p className="text-sm font-medium text-n-4">Role</p>
-            <p>{user.is_organizer ? "Event Organizer" : "Attendee"}</p>
+        <CardContent>
+          <div className="space-y-4">
+            <div>
+              <p className="text-sm font-medium text-gray-500">Email</p>
+              <p className="mt-1">{user.email}</p>
+            </div>
+            <div>
+              <p className="text-sm font-medium text-gray-500">Account Type</p>
+              <p className="mt-1">
+                {user.is_organizer ? "Organizer" : "Attendee"}
+              </p>
+            </div>
           </div>
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="mb-8">
         <CardHeader>
-          <CardTitle>My Registrations</CardTitle>
+          <CardTitle>My Event Registrations</CardTitle>
         </CardHeader>
         <CardContent>
           {registrations.length === 0 ? (
-            <p className="text-n-4">
+            <p className="text-gray-500">
               You haven't registered for any events yet.
             </p>
           ) : (
@@ -115,13 +103,12 @@ function Profile() {
               {registrations.map((registration) => (
                 <Card key={registration.id}>
                   <CardContent className="pt-6">
-                    <h3 className="font-semibold">
-                      {registration.events.name}
-                    </h3>
-                    <p className="text-sm text-n-4">
-                      {new Date(registration.events.date).toLocaleDateString()}
+                    <h3 className="font-medium">{registration.event.name}</h3>
+                    <p className="text-sm text-gray-500">
+                      Date:{" "}
+                      {new Date(registration.event.date).toLocaleDateString()}
                     </p>
-                    <p className="text-sm text-n-4 mt-2">
+                    <p className="text-sm text-gray-500">
                       Status: {registration.status}
                     </p>
                   </CardContent>
@@ -131,8 +118,10 @@ function Profile() {
           )}
         </CardContent>
       </Card>
+
+      <Button onClick={handleSignOut} variant="destructive">
+        Sign Out
+      </Button>
     </div>
   );
 }
-
-export default Profile;
