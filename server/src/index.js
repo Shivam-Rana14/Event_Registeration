@@ -9,7 +9,10 @@ const app = express();
 const port = process.env.PORT || 9001;
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: ['http://116.202.210.102:5173', 'http://localhost:5173'],
+  credentials: true
+}));
 app.use(express.json());
 
 // Supabase client
