@@ -105,7 +105,7 @@ export default function Home() {
             <Link to="/events">
               <Button
                 variant="outline"
-                className="border-n-2 text-n-2 hover:bg-n-7 hover:text-n-1"
+                className="border-n-2 text-n-2 bg-black hover:bg-n-7 hover:text-n-1"
               >
                 View All Events
               </Button>
