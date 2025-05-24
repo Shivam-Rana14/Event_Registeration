@@ -2,8 +2,9 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { createClient } from "@supabase/supabase-js";
 import { useToast } from "../hooks/use-toast";
+import { useAuth } from "../contexts/AuthContext";
+import { supabase } from "../lib/supabase";
 import {
   Dialog,
   DialogContent,
@@ -23,11 +24,6 @@ import {
 import { Input } from "./ui/input";
 import { Textarea } from "./ui/textarea";
 
-const supabase = createClient(
-  import.meta.env.VITE_SUPABASE_URL,
-  import.meta.env.VITE_SUPABASE_ANON_KEY
-);
-
 const formSchema = z.object({
   fullName: z.string().min(2, "Name must be at least 2 characters"),
   phoneNumber: z.string().regex(/^\+?[1-9]\d{1,14}$/, "Invalid phone number"),
@@ -37,6 +33,7 @@ const formSchema = z.object({
 export function RegistrationModal({ event, isOpen, onClose, onSuccess }) {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+  const { user, isAuthenticated } = useAuth();
 
   const form = useForm({
     resolver: zodResolver(formSchema),
@@ -48,31 +45,59 @@ export function RegistrationModal({ event, isOpen, onClose, onSuccess }) {
   });
 
   const onSubmit = async (data) => {
+    if (!isAuthenticated || !user) {
+      toast({
+        title: "Error",
+        description: "Please sign in to register for events",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       setIsLoading(true);
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
 
-      if (!user) {
+      // Check capacity before registration
+      const { data: eventData, error: eventError } = await supabase
+        .from("events")
+        .select("remaining_capacity")
+        .eq("id", event.id)
+        .single();
+
+      if (eventError) throw eventError;
+
+      if (eventData.remaining_capacity <= 0) {
         toast({
           title: "Error",
-          description: "Please sign in to register for events",
+          description: "Sorry, this event is full",
           variant: "destructive",
         });
         return;
       }
 
-      const { error } = await supabase.from("event_registrations").insert({
-        event_id: event.id,
-        user_id: user.id,
-        full_name: data.fullName,
-        phone_number: data.phoneNumber,
-        custom_answer: data.customAnswer,
-        status: "pending",
-      });
+      // Create registration
+      const { error: registrationError } = await supabase
+        .from("registrations")
+        .insert({
+          event_id: event.id,
+          user_id: user.id,
+          full_name: data.fullName,
+          phone_number: data.phoneNumber,
+          custom_answer: data.customAnswer,
+          status: "pending",
+        });
 
-      if (error) throw error;
+      if (registrationError) throw registrationError;
+
+      // Update event capacity
+      const { error: updateError } = await supabase
+        .from("events")
+        .update({
+          remaining_capacity: eventData.remaining_capacity - 1,
+        })
+        .eq("id", event.id);
+
+      if (updateError) throw updateError;
 
       toast({
         title: "Success",
@@ -82,6 +107,7 @@ export function RegistrationModal({ event, isOpen, onClose, onSuccess }) {
       onSuccess?.();
       onClose();
     } catch (error) {
+      console.error("Registration error:", error);
       toast({
         title: "Error",
         description: error.message || "Failed to register for event",
@@ -105,7 +131,7 @@ export function RegistrationModal({ event, isOpen, onClose, onSuccess }) {
               name="fullName"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Full Name</FormLabel>
+                  <FormLabel className="text-n-1">Full Name</FormLabel>
                   <FormControl>
                     <Input placeholder="John Doe" {...field} />
                   </FormControl>
@@ -118,7 +144,7 @@ export function RegistrationModal({ event, isOpen, onClose, onSuccess }) {
               name="phoneNumber"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Phone Number</FormLabel>
+                  <FormLabel className="text-n-1">Phone Number</FormLabel>
                   <FormControl>
                     <Input placeholder="+1234567890" {...field} />
                   </FormControl>
@@ -132,7 +158,9 @@ export function RegistrationModal({ event, isOpen, onClose, onSuccess }) {
                 name="customAnswer"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{event.custom_question}</FormLabel>
+                    <FormLabel className="text-n-1">
+                      {event.custom_question}
+                    </FormLabel>
                     <FormControl>
                       <Textarea
                         placeholder="Your answer..."
@@ -146,14 +174,6 @@ export function RegistrationModal({ event, isOpen, onClose, onSuccess }) {
               />
             )}
             <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={onClose}
-                disabled={isLoading}
-              >
-                Cancel
-              </Button>
               <Button type="submit" disabled={isLoading}>
                 {isLoading ? "Registering..." : "Register"}
               </Button>

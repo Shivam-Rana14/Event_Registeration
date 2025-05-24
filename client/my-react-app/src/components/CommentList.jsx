@@ -1,13 +1,8 @@
 import { useEffect, useState } from "react";
-import { createClient } from "@supabase/supabase-js";
+import { supabase } from "../lib/supabase";
 import { format } from "date-fns";
 import { Skeleton } from "./ui/skeleton";
 import { ScrollArea } from "./ui/scroll-area";
-
-const supabase = createClient(
-  import.meta.env.VITE_SUPABASE_URL,
-  import.meta.env.VITE_SUPABASE_ANON_KEY
-);
 
 export function CommentList({ eventId }) {
   const [comments, setComments] = useState([]);
@@ -15,17 +10,27 @@ export function CommentList({ eventId }) {
 
   useEffect(() => {
     fetchComments();
+    
+    // Add event listener for refresh
+    const commentList = document.querySelector('[data-testid="comment-list"]');
+    if (commentList) {
+      const handleRefresh = () => fetchComments();
+      commentList.addEventListener('refresh-comments', handleRefresh);
+      return () => commentList.removeEventListener('refresh-comments', handleRefresh);
+    }
   }, [eventId]);
 
   const fetchComments = async () => {
     try {
+      console.log('Fetching comments for event:', eventId);
       const { data, error } = await supabase
         .from("event_comments")
-        .select("*")
+        .select('*')
         .eq("event_id", eventId)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
+      console.log('Fetched comments:', data);
       setComments(data || []);
     } catch (error) {
       console.error("Error fetching comments:", error);
@@ -56,7 +61,7 @@ export function CommentList({ eventId }) {
   }
 
   return (
-    <ScrollArea className="h-[400px] pr-4">
+    <ScrollArea className="h-[400px] pr-4" data-testid="comment-list">
       <div className="space-y-4">
         {comments.map((comment) => (
           <div
@@ -65,7 +70,7 @@ export function CommentList({ eventId }) {
           >
             <div className="flex justify-between items-start mb-2">
               <p className="text-sm font-medium">
-                User {comment.user_id.slice(0, 8)}...
+                User {comment.user_id?.substring(0, 8)}
               </p>
               <p className="text-xs text-n-4">
                 {format(new Date(comment.created_at), "MMM d, yyyy h:mm a")}

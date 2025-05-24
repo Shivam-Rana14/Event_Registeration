@@ -5,11 +5,23 @@ import { createClient } from "@supabase/supabase-js";
 
 dotenv.config();
 
+// Validate required environment variables
+const requiredEnvVars = ['SUPABASE_URL', 'SUPABASE_ANON_KEY'];
+for (const envVar of requiredEnvVars) {
+  if (!process.env[envVar]) {
+    console.error(`Missing required environment variable: ${envVar}`);
+    process.exit(1);
+  }
+}
+
 const app = express();
-const port = process.env.PORT || 5000;
+const port = process.env.PORT || 9001;
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:5789'],
+  credentials: true
+}));
 app.use(express.json());
 
 // Supabase client

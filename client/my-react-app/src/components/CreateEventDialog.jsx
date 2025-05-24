@@ -2,8 +2,9 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { createClient } from "@supabase/supabase-js";
 import { useToast } from "../hooks/use-toast";
+import { useAuth } from "../contexts/AuthContext";
+import { supabase } from "../lib/supabase";
 import { Button } from "./ui/button";
 import {
   Dialog,
@@ -24,11 +25,6 @@ import {
 } from "./ui/select";
 import { Checkbox } from "./ui/checkbox";
 
-const supabase = createClient(
-  import.meta.env.VITE_SUPABASE_URL,
-  import.meta.env.VITE_SUPABASE_ANON_KEY
-);
-
 const eventSchema = z.object({
   name: z.string().min(1, "Event name is required"),
   date: z.date().min(new Date(), "Date must be in the future"),
@@ -37,6 +33,7 @@ const eventSchema = z.object({
     .string()
     .min(1, "Description is required")
     .max(300, "Description must be less than 300 characters"),
+  location: z.string().min(1, "Location is required"),
   capacity: z
     .number()
     .min(10, "Capacity must be at least 10")
@@ -48,24 +45,74 @@ const eventSchema = z.object({
   isFeatured: z.boolean().default(false),
 });
 
-export function CreateEventDialog() {
+export function CreateEventDialog({ onSuccess }) {
   const [step, setStep] = useState(1);
   const [open, setOpen] = useState(false);
   const { toast } = useToast();
+  const { user, isOrganizer } = useAuth();
 
   const {
     register,
     handleSubmit,
     setValue,
     watch,
+    trigger,
     formState: { errors, isValid },
   } = useForm({
     resolver: zodResolver(eventSchema),
     mode: "onChange",
+    defaultValues: {
+      name: "",
+      date: undefined,
+      category: undefined,
+      description: "",
+      location: "",
+      capacity: 10,
+      customQuestion: "",
+      isFeatured: false,
+    },
   });
 
+  const watchedFields = watch();
+
+  const isStep1Valid = () => {
+    return (
+      watchedFields.name &&
+      watchedFields.date &&
+      watchedFields.category &&
+      watchedFields.description &&
+      watchedFields.location &&
+      !errors.name &&
+      !errors.date &&
+      !errors.category &&
+      !errors.description &&
+      !errors.location
+    );
+  };
+
   const onSubmit = async (data) => {
+    if (!user || !isOrganizer) {
+      toast({
+        title: "Error",
+        description: "You must be an organizer to create events",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
+      // First, verify the user's organizer status
+      const { data: userData, error: userError } = await supabase
+        .from("users")
+        .select("is_organizer")
+        .eq("id", user.id)
+        .single();
+
+      if (userError) throw userError;
+      if (!userData.is_organizer) {
+        throw new Error("You must be an organizer to create events");
+      }
+
       const { data: event, error: eventError } = await supabase
         .from("events")
         .insert([
@@ -74,9 +121,11 @@ export function CreateEventDialog() {
             date: data.date.toISOString(),
             category: data.category,
             description: data.description,
+            location: data.location,
             total_capacity: data.capacity,
             remaining_capacity: data.capacity,
             is_featured: data.isFeatured,
+            organizer_id: user.id,
           },
         ])
         .select()
@@ -104,14 +153,20 @@ export function CreateEventDialog() {
 
       setOpen(false);
       setStep(1);
+      onSuccess?.();
     } catch (error) {
+      console.error("Error creating event:", error);
       toast({
         title: "Error",
-        description: "Failed to create event",
+        description: error.message || "Failed to create event",
         variant: "destructive",
       });
     }
   };
+
+  if (!isOrganizer) {
+    return null;
+  }
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -120,13 +175,14 @@ export function CreateEventDialog() {
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Create New Event</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           {step === 1 ? (
             <>
               <div className="space-y-2">
-                <label htmlFor="name">Event Name</label>
+                <label htmlFor="name" className="text-foreground font-medium">
+                  Event Name
+                </label>
                 <Input
                   id="name"
                   {...register("name")}
@@ -140,10 +196,13 @@ export function CreateEventDialog() {
               </div>
 
               <div className="space-y-2">
-                <label>Date</label>
+                <label className="text-n-1">Date</label>
                 <DatePicker
-                  date={watch("date")}
-                  setDate={(date) => setValue("date", date)}
+                  date={watchedFields.date}
+                  setDate={(date) => {
+                    setValue("date", date, { shouldValidate: true });
+                    trigger("date");
+                  }}
                 />
                 {errors.date && (
                   <p className="text-sm text-destructive">
@@ -153,10 +212,13 @@ export function CreateEventDialog() {
               </div>
 
               <div className="space-y-2">
-                <label>Category</label>
+                <label className="text-n-1">Category</label>
                 <Select
-                  onValueChange={(value) => setValue("category", value)}
-                  value={watch("category")}
+                  onValueChange={(value) => {
+                    setValue("category", value, { shouldValidate: true });
+                    trigger("category");
+                  }}
+                  value={watchedFields.category}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select a category" />
@@ -175,7 +237,25 @@ export function CreateEventDialog() {
               </div>
 
               <div className="space-y-2">
-                <label htmlFor="description">Description</label>
+                <label htmlFor="location" className="text-foreground font-medium">
+                  Location
+                </label>
+                <Input
+                  id="location"
+                  {...register("location")}
+                  className={errors.location ? "border-destructive" : ""}
+                />
+                {errors.location && (
+                  <p className="text-sm text-destructive">
+                    {errors.location.message}
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <label htmlFor="description" className="text-foreground font-medium">
+                  Description
+                </label>
                 <Textarea
                   id="description"
                   {...register("description")}
@@ -191,7 +271,7 @@ export function CreateEventDialog() {
               <Button
                 type="button"
                 onClick={() => setStep(2)}
-                disabled={!isValid}
+                disabled={!isStep1Valid()}
                 className="w-full"
               >
                 Next
@@ -200,10 +280,14 @@ export function CreateEventDialog() {
           ) : (
             <>
               <div className="space-y-2">
-                <label htmlFor="capacity">Capacity</label>
+                <label htmlFor="capacity" className="text-foreground font-medium">
+                  Capacity
+                </label>
                 <Input
                   id="capacity"
                   type="number"
+                  min="10"
+                  max="1000"
                   {...register("capacity", { valueAsNumber: true })}
                   className={errors.capacity ? "border-destructive" : ""}
                 />
@@ -215,7 +299,7 @@ export function CreateEventDialog() {
               </div>
 
               <div className="space-y-2">
-                <label htmlFor="customQuestion">
+                <label htmlFor="customQuestion" className="text-foreground font-medium">
                   Custom Question (Optional)
                 </label>
                 <Input
@@ -230,17 +314,25 @@ export function CreateEventDialog() {
                 )}
               </div>
 
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="isFeatured"
-                  onCheckedChange={(checked) => setValue("isFeatured", checked)}
-                />
-                <label
-                  htmlFor="isFeatured"
-                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                >
-                  Feature this event
-                </label>
+              <div className="space-y-2 border rounded-lg p-4 bg-muted">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="isFeatured"
+                    checked={watchedFields.isFeatured}
+                    onCheckedChange={(checked) => setValue("isFeatured", checked)}
+                  />
+                  <div className="grid gap-1.5 leading-none">
+                    <label
+                      htmlFor="isFeatured"
+                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                    >
+                      Feature this event
+                    </label>
+                    <p className="text-sm text-muted-foreground">
+                      Featured events are displayed prominently on the homepage and may attract more attendees.
+                    </p>
+                  </div>
+                </div>
               </div>
 
               <div className="flex gap-2">

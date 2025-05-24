@@ -1,14 +1,9 @@
 import { useState, useEffect } from "react";
-import { createClient } from "@supabase/supabase-js";
+import { supabase } from "../lib/supabase";
 import { useToast } from "../hooks/use-toast";
 import { Button } from "./ui/button";
 import { Heart } from "lucide-react";
 import { motion } from "framer-motion";
-
-const supabase = createClient(
-  import.meta.env.VITE_SUPABASE_URL,
-  import.meta.env.VITE_SUPABASE_ANON_KEY
-);
 
 export function FavoriteButton({ eventId }) {
   const [isFavorite, setIsFavorite] = useState(false);

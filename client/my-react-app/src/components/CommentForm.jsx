@@ -2,16 +2,18 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { createClient } from "@supabase/supabase-js";
+import { supabase } from "../lib/supabase";
 import { useToast } from "../hooks/use-toast";
 import { Button } from "./ui/button";
-import { Form, FormControl, FormField, FormItem, FormMessage } from "./ui/form";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormMessage,
+  FormLabel,
+} from "./ui/form";
 import { Textarea } from "./ui/textarea";
-
-const supabase = createClient(
-  import.meta.env.VITE_SUPABASE_URL,
-  import.meta.env.VITE_SUPABASE_ANON_KEY
-);
 
 const formSchema = z.object({
   content: z
@@ -47,11 +49,19 @@ export function CommentForm({ eventId, onSuccess }) {
         return;
       }
 
+      console.log('Submitting comment:', {
+        eventId,
+        userId: user.id,
+        content: data.content
+      });
+      
       const { error } = await supabase.from("event_comments").insert({
         event_id: eventId,
         user_id: user.id,
         content: data.content,
       });
+      
+      console.log('Comment submission result:', error ? 'error' : 'success');
 
       if (error) throw error;
 
@@ -61,7 +71,10 @@ export function CommentForm({ eventId, onSuccess }) {
       });
 
       form.reset();
-      onSuccess?.();
+      // Trigger refresh of comments
+      if (typeof onSuccess === 'function') {
+        onSuccess();
+      }
     } catch (error) {
       toast({
         title: "Error",
@@ -81,24 +94,20 @@ export function CommentForm({ eventId, onSuccess }) {
           name="content"
           render={({ field }) => (
             <FormItem>
+              <FormLabel className="text-n-1">Your Comment</FormLabel>
               <FormControl>
                 <Textarea
-                  placeholder="Write a comment..."
+                  placeholder="Write your comment..."
                   className="resize-none"
                   {...field}
                 />
               </FormControl>
-              <div className="flex justify-between items-center">
-                <FormMessage />
-                <span className="text-sm text-n-4">
-                  {field.value.length}/280
-                </span>
-              </div>
+              <FormMessage />
             </FormItem>
           )}
         />
         <Button type="submit" disabled={isLoading}>
-          {isLoading ? "Posting..." : "Post"}
+          {isLoading ? "Posting..." : "Post Comment"}
         </Button>
       </form>
     </Form>
