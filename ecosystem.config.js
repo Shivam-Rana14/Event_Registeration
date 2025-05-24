@@ -34,11 +34,15 @@ module.exports = {
       max_memory_restart: '1G',
       env: {
         NODE_ENV: 'development',
-        PORT: 5789
+        PORT: 5789,
+        VITE_SUPABASE_URL: 'https://irxwklpjxecoettwfeiq.supabase.co',
+        VITE_SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlyeHdrbHBqeGVjb2V0dHdmZWlxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MDI5NzMwNzgsImV4cCI6MjAxODU0OTA3OH0.RYyD6eeGQOm8IRgZIkN6j_6GWFHDOAQp_cAHHkEBhB4'
       },
       env_production: {
         NODE_ENV: 'production',
-        PORT: 5789
+        PORT: 5789,
+        VITE_SUPABASE_URL: 'https://irxwklpjxecoettwfeiq.supabase.co',
+        VITE_SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlyeHdrbHBqeGVjb2V0dHdmZWlxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MDI5NzMwNzgsImV4cCI6MjAxODU0OTA3OH0.RYyD6eeGQOm8IRgZIkN6j_6GWFHDOAQp_cAHHkEBhB4'
       }
     }
   ]
