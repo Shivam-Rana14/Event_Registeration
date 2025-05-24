@@ -1,9 +1,12 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
 import { useAuth } from "../contexts/AuthContext";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
+import { Card, CardContent, CardHeader } from "../components/ui/card";
+import { LogIn } from "lucide-react";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -32,60 +35,104 @@ export default function Login() {
   };
 
   return (
-    <div className="container mx-auto flex min-h-[calc(100vh-4rem)] items-center justify-center px-4 bg-n-3">
-      <div className="w-full max-w-md space-y-8">
-        <div className="text-center">
-          <h2 className="text-3xl font-bold tracking-tight text-foreground">
-            Sign in to your account
-          </h2>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Or{" "}
-            <Link to="/register" className="text-primary hover:underline">
-              create a new account
-            </Link>
-          </p>
-        </div>
-
-        <form onSubmit={handleSubmit} className="mt-8 space-y-6">
-          {error && (
-            <div className="rounded-md bg-destructive/15 p-3 text-sm text-destructive">
-              {error}
+    <div className="min-h-[calc(100vh-4rem)] bg-gradient-to-b from-n-8 to-n-9 flex items-center justify-center px-4 sm:px-6 lg:px-8 py-12">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="w-full max-w-md"
+      >
+        <Card className="bg-n-7/90 backdrop-blur-sm border-n-6 shadow-2xl">
+          <CardHeader className="text-center space-y-2 pb-6">
+            <div className="mx-auto bg-primary/10 w-12 h-12 rounded-full flex items-center justify-center mb-2">
+              <LogIn className="w-6 h-6 text-primary" />
             </div>
-          )}
+            <h2 className="text-2xl font-bold tracking-tight text-n-1">
+              Welcome back
+            </h2>
+            <p className="text-sm text-n-3">
+              New to our platform?{" "}
+              <Link 
+                to="/register" 
+                className="text-primary hover:text-primary/90 transition-colors font-medium"
+              >
+                Create an account
+              </Link>
+            </p>
+          </CardHeader>
 
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="email">Email address</Label>
-              <Input
-                id="email"
-                type="email"
-                required
-                value={formData.email}
-                onChange={(e) =>
-                  setFormData({ ...formData, email: e.target.value })
-                }
-              />
-            </div>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {error && (
+                <motion.div 
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="rounded-lg bg-destructive/15 border border-destructive/30 p-4 text-sm text-destructive"
+                >
+                  {error}
+                </motion.div>
+              )}
 
-            <div>
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                required
-                value={formData.password}
-                onChange={(e) =>
-                  setFormData({ ...formData, password: e.target.value })
-                }
-              />
-            </div>
-          </div>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label 
+                    htmlFor="email" 
+                    className="text-sm font-medium text-n-2"
+                  >
+                    Email address
+                  </Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    required
+                    placeholder="Enter your email"
+                    className="bg-n-6/50 border-n-5/50 text-n-1 placeholder:text-n-4"
+                    value={formData.email}
+                    onChange={(e) =>
+                      setFormData({ ...formData, email: e.target.value })
+                    }
+                  />
+                </div>
 
-          <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? "Signing in..." : "Sign in"}
-          </Button>
-        </form>
-      </div>
+                <div className="space-y-2">
+                  <Label 
+                    htmlFor="password"
+                    className="text-sm font-medium text-n-2"
+                  >
+                    Password
+                  </Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    required
+                    placeholder="Enter your password"
+                    className="bg-n-6/50 border-n-5/50 text-n-1 placeholder:text-n-4"
+                    value={formData.password}
+                    onChange={(e) =>
+                      setFormData({ ...formData, password: e.target.value })
+                    }
+                  />
+                </div>
+              </div>
+
+              <Button 
+                type="submit" 
+                className="w-full bg-primary hover:bg-primary/90 text-white font-medium py-2 transition-all duration-200 shadow-lg shadow-primary/25"
+                disabled={loading}
+              >
+                {loading ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <span className="animate-spin rounded-full h-4 w-4 border-2 border-n-1 border-t-transparent"></span>
+                    Signing in...
+                  </span>
+                ) : (
+                  "Sign in"
+                )}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      </motion.div>
     </div>
   );
 }
