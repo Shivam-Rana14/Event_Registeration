@@ -175,13 +175,12 @@ export function CreateEventDialog({ onSuccess }) {
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Create New Event</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           {step === 1 ? (
             <>
               <div className="space-y-2">
-                <label htmlFor="name" className="text-n-1">
+                <label htmlFor="name" className="text-foreground font-medium">
                   Event Name
                 </label>
                 <Input
@@ -238,7 +237,7 @@ export function CreateEventDialog({ onSuccess }) {
               </div>
 
               <div className="space-y-2">
-                <label htmlFor="location" className="text-n-1">
+                <label htmlFor="location" className="text-foreground font-medium">
                   Location
                 </label>
                 <Input
@@ -254,7 +253,7 @@ export function CreateEventDialog({ onSuccess }) {
               </div>
 
               <div className="space-y-2">
-                <label htmlFor="description" className="text-n-1">
+                <label htmlFor="description" className="text-foreground font-medium">
                   Description
                 </label>
                 <Textarea
@@ -281,7 +280,7 @@ export function CreateEventDialog({ onSuccess }) {
           ) : (
             <>
               <div className="space-y-2">
-                <label htmlFor="capacity" className="text-n-1">
+                <label htmlFor="capacity" className="text-foreground font-medium">
                   Capacity
                 </label>
                 <Input
@@ -300,7 +299,7 @@ export function CreateEventDialog({ onSuccess }) {
               </div>
 
               <div className="space-y-2">
-                <label htmlFor="customQuestion" className="text-n-1">
+                <label htmlFor="customQuestion" className="text-foreground font-medium">
                   Custom Question (Optional)
                 </label>
                 <Input
@@ -315,7 +314,7 @@ export function CreateEventDialog({ onSuccess }) {
                 )}
               </div>
 
-              <div className="space-y-2 border rounded-lg p-4 bg-accent/20">
+              <div className="space-y-2 border rounded-lg p-4 bg-muted">
                 <div className="flex items-center space-x-2">
                   <Checkbox
                     id="isFeatured"

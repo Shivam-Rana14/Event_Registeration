@@ -66,6 +66,7 @@ const EventActions = ({ event, onUpdate }) => {
     <div className="flex gap-2">
       <Button
         variant="outline"
+        className="hover:bg-accent hover:text-accent-foreground"
         onClick={() => navigate(`/events/${event.id}/edit`)}
         disabled={isUpdating}
       >
@@ -89,6 +90,7 @@ const EventActions = ({ event, onUpdate }) => {
           <DialogFooter>
             <Button
               variant="outline"
+              className="hover:bg-accent hover:text-accent-foreground"
               onClick={() => setIsDeleteDialogOpen(false)}
               disabled={isUpdating}
             >
