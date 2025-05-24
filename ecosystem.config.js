@@ -23,22 +23,20 @@ module.exports = {
     },
     {
       name: 'event-registration-client',
-      cwd: './client/my-react-app',
-      script: 'npm',
-      args: 'run dev',
+      cwd: './client/my-react-app/dist',
+      script: 'serve',
+      args: '-s . -l 5173',
       instances: 1,
       autorestart: true,
       watch: false,
       max_memory_restart: '1G',
       env: {
         NODE_ENV: 'development',
-        VITE_PORT: 5173,
-        VITE_HOST: '0.0.0.0'
+        PORT: 5173
       },
       env_production: {
         NODE_ENV: 'production',
-        VITE_PORT: 5173,
-        VITE_HOST: '0.0.0.0'
+        PORT: 5173
       }
     }
   ]
