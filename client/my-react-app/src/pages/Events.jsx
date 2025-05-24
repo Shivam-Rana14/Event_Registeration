@@ -93,10 +93,9 @@ export default function Events() {
         query = query.lt("date", format(new Date(), "yyyy-MM-dd"));
       }
 
-      // Capacity filter is tricky with count aggregation, might need RLS or a database function
-      // For now, filtering based on whether capacity > 0 if 'available' is selected
+      // Filter based on total_capacity and remaining spots
       if (filters.capacity === "available") {
-        query = query.gt("capacity", 0);
+        query = query.gt("total_capacity", 0);
       }
 
       if (filters.category !== "all") {

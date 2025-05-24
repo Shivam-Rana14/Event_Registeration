@@ -171,7 +171,7 @@ export default function Home() {
                       <div className="flex items-center text-n-3">
                         <Users className="w-4 h-4 mr-2" />
                         <span>
-                          {event.registrations[0]?.count || 0}/{event.capacity}{" "}
+                          {event.registrations[0]?.count || 0}/{event.total_capacity}{" "}
                           registered
                         </span>
                       </div>
@@ -181,19 +181,19 @@ export default function Home() {
                     </p>
 
                     {/* Progress Bar for Capacity */}
-                    {event.capacity > 0 && (
+                    {event.total_capacity > 0 && (
                       <div className="mt-4 space-y-2">
                         <div className="flex justify-between text-sm text-n-2">
                           <span>Capacity</span>
                           <span>
                             {event.registrations[0]?.count || 0}/
-                            {event.capacity}
+                            {event.total_capacity}
                           </span>
                         </div>
                         <Progress
                           value={
                             ((event.registrations[0]?.count || 0) /
-                              event.capacity) *
+                              event.total_capacity) *
                             100
                           }
                           className="h-2"
