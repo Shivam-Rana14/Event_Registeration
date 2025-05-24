@@ -25,9 +25,9 @@ module.exports = {
     },
     {
       name: 'shivam-event-reg-client',
-      cwd: './client/my-react-app/dist',
-      script: 'serve',
-      args: ['--single', '.', '--listen', '5789'],
+      cwd: './client/my-react-app',
+      script: 'npm',
+      args: 'run preview -- --port 5789 --host',
       instances: 1,
       autorestart: true,
       watch: false,
