@@ -18,7 +18,7 @@ export default function Navbar() {
       <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between">
           <div className="flex items-center">
-            <Link to="/" className="text-xl font-bold text-foreground">
+            <Link to="/" className="text-2xl font-bold text-foreground hover:text-primary transition-colors">
               EventHub
             </Link>
           </div>
@@ -26,10 +26,10 @@ export default function Navbar() {
           {/* Desktop Navigation */}
           <div className="hidden md:block">
             <NavigationMenu>
-              <NavigationMenuList>
+              <NavigationMenuList className="space-x-6">
                 <NavigationMenuItem>
                   <Link to="/events" legacyBehavior passHref>
-                    <NavigationMenuLink className="text-foreground hover:text-primary">
+                    <NavigationMenuLink className="px-3 py-2 text-sm font-medium text-foreground hover:text-primary transition-colors">
                       Events
                     </NavigationMenuLink>
                   </Link>
@@ -37,46 +37,26 @@ export default function Navbar() {
                 {user && (
                   <NavigationMenuItem>
                     <Link to="/my-registrations" legacyBehavior passHref>
-                      <NavigationMenuLink className="text-foreground hover:text-primary">
+                      <NavigationMenuLink className="px-3 py-2 text-sm font-medium text-foreground hover:text-primary transition-colors">
                         My Registrations
                       </NavigationMenuLink>
                     </Link>
                   </NavigationMenuItem>
                 )}
-                <NavigationMenuItem>
-                  <Link to="/about" legacyBehavior passHref>
-                    <NavigationMenuLink className="text-foreground hover:text-primary">
-                      About
-                    </NavigationMenuLink>
-                  </Link>
-                </NavigationMenuItem>
-                <NavigationMenuItem>
-                  <Link to="/contact" legacyBehavior passHref>
-                    <NavigationMenuLink className="text-foreground hover:text-primary">
-                      Contact
-                    </NavigationMenuLink>
-                  </Link>
-                </NavigationMenuItem>
+                
               </NavigationMenuList>
             </NavigationMenu>
           </div>
 
           {/* User Menu */}
-          <div className="flex items-center gap-4">
-            {/* {user?.is_organizer && (
-              <Link to="/events/create">
-                <Button variant="default" className="hidden md:block">
-                  Create Event
-                </Button>
-              </Link>
-            )} */}
+          <div className="flex items-center gap-6">
             {user ? (
-              <Button variant="outline" onClick={signOut}>
+              <Button variant="outline" onClick={signOut} className="px-6">
                 Sign Out
               </Button>
             ) : (
               <Link to="/login">
-                <Button variant="outline">Sign In</Button>
+                <Button variant="outline" className="px-6">Sign In</Button>
               </Link>
             )}
 
@@ -91,37 +71,18 @@ export default function Navbar() {
                 <div className="flex flex-col space-y-4 mt-8">
                   <Link
                     to="/events"
-                    className="text-foreground hover:text-primary"
+                    className="px-3 py-2 text-sm font-medium text-foreground hover:text-primary transition-colors rounded-md hover:bg-accent"
                   >
                     Events
                   </Link>
                   {user && (
                     <Link
                       to="/my-registrations"
-                      className="text-foreground hover:text-primary"
+                      className="px-3 py-2 text-sm font-medium text-foreground hover:text-primary transition-colors rounded-md hover:bg-accent"
                     >
                       My Registrations
                     </Link>
                   )}
-                  <Link
-                    to="/about"
-                    className="text-foreground hover:text-primary"
-                  >
-                    About
-                  </Link>
-                  <Link
-                    to="/contact"
-                    className="text-foreground hover:text-primary"
-                  >
-                    Contact
-                  </Link>
-                  {/* {user?.is_organizer && (
-                    <Link to="/events/create">
-                      <Button variant="default" className="w-full">
-                        Create Event
-                      </Button>
-                    </Link>
-                  )} */}
                   {user ? (
                     <Button
                       variant="outline"

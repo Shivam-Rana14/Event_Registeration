@@ -315,18 +315,25 @@ export function CreateEventDialog({ onSuccess }) {
                 )}
               </div>
 
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="isFeatured"
-                  checked={watchedFields.isFeatured}
-                  onCheckedChange={(checked) => setValue("isFeatured", checked)}
-                />
-                <label
-                  htmlFor="isFeatured"
-                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                >
-                  Feature this event
-                </label>
+              <div className="space-y-2 border rounded-lg p-4 bg-accent/20">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="isFeatured"
+                    checked={watchedFields.isFeatured}
+                    onCheckedChange={(checked) => setValue("isFeatured", checked)}
+                  />
+                  <div className="grid gap-1.5 leading-none">
+                    <label
+                      htmlFor="isFeatured"
+                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                    >
+                      Feature this event
+                    </label>
+                    <p className="text-sm text-muted-foreground">
+                      Featured events are displayed prominently on the homepage and may attract more attendees.
+                    </p>
+                  </div>
+                </div>
               </div>
 
               <div className="flex gap-2">
