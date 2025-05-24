@@ -26,6 +26,14 @@ module.exports = {
     {
       name: 'shivam-event-reg-client',
       cwd: './client/my-react-app',
+      env: {
+        VITE_SUPABASE_URL: 'https://irxwklpjxecoettwfeiq.supabase.co',
+        VITE_SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlyeHdrbHBqeGVjb2V0dHdmZWlxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc5MTgyMjQsImV4cCI6MjA2MzQ5NDIyNH0.Gtw5qCBBQ8EP0Fakj9caeI3K4WGzKje3lHAOAIlSekI'
+      },
+      env_production: {
+        VITE_SUPABASE_URL: 'https://irxwklpjxecoettwfeiq.supabase.co',
+        VITE_SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlyeHdrbHBqeGVjb2V0dHdmZWlxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc5MTgyMjQsImV4cCI6MjA2MzQ5NDIyNH0.Gtw5qCBBQ8EP0Fakj9caeI3K4WGzKje3lHAOAIlSekI'
+      },
       script: 'npm',
       args: 'run preview -- --port 5789 --host',
       instances: 1,
